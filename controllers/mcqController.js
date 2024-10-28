@@ -4,7 +4,7 @@ const getQuestion = async (req, res) => {
   try {
     const { department, page = 1, sessionId } = req.query;
 
-    // Validate session ID
+    // check if session id is there in request
     if (!sessionId) {
       return res.status(400).json({
         success: false,
@@ -33,7 +33,7 @@ const getQuestion = async (req, res) => {
     // aldo for every session id the ordr will be different
     const userSeed = parseInt(sessionId.replace(/[^0-9]/g, "")) || Date.now();
 
-    // Fetch all questions at once with proper indexing
+    // fetching question based on hash 
     const [deptQuestions, aptQuestions] = await Promise.all([
       MCQ.aggregate([
         {
