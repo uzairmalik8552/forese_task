@@ -137,7 +137,7 @@ const MCQ = require("../models/mcq");
 
 const getQuestion = async (req, res) => {
   try {
-    const { department = "CSE", page = 1, sessionId } = req.query;
+    const { department, page = 1, sessionId } = req.query;
 
     // Validate session ID
     if (!sessionId) {
@@ -154,18 +154,18 @@ const getQuestion = async (req, res) => {
     const totalQuestions = totalDeptQuestions + totalAptQuestions;
     const totalPages = Math.ceil(totalQuestions / questionsPerPage);
 
-    // Validate page number
+    // validate page number
     if (currentPage < 1 || currentPage > totalPages) {
       return res.status(400).json({
         success: false,
         error: `Invalid page number. Must be between 1 and ${totalPages}`,
       });
     }
-
+    // this is used to paginate
     const startIndex = (currentPage - 1) * questionsPerPage;
     const endIndex = Math.min(startIndex + questionsPerPage, totalQuestions);
-
-    // Use session ID to create a unique but consistent order for each user
+    // this is used fordecentralized shuffling because of which there will be no duplicate in different page
+    // aldo for every session id the ordr will be different
     const userSeed = parseInt(sessionId.replace(/[^0-9]/g, "")) || Date.now();
 
     // Fetch all questions at once with proper indexing
@@ -179,7 +179,7 @@ const getQuestion = async (req, res) => {
         },
         {
           $addFields: {
-            // Create a random sort value that's consistent for this user's session
+            // this funfion geenerate randome hasvalue using seed value for the retrival of question
             sortOrder: {
               $function: {
                 body: `function(id, seed) {
@@ -210,6 +210,7 @@ const getQuestion = async (req, res) => {
         {
           $addFields: {
             sortOrder: {
+              // it is also the same as previos funtion
               $function: {
                 body: `function(id, seed) {
                   const str = id.toString() + seed.toString();
@@ -231,11 +232,9 @@ const getQuestion = async (req, res) => {
       ]),
     ]);
 
-    // Combine questions based on pagination
     let questionsForThisPage = [];
-
+    // in this we are trying to show the department question fo\irst aand then the apptitude question
     if (startIndex < totalDeptQuestions) {
-      // Add department questions
       const deptStart = startIndex;
       const deptEnd = Math.min(
         startIndex + questionsPerPage,
@@ -248,7 +247,6 @@ const getQuestion = async (req, res) => {
       questionsForThisPage.length < questionsPerPage &&
       endIndex > totalDeptQuestions
     ) {
-      // Add aptitude questions if needed
       const aptStart = Math.max(0, startIndex - totalDeptQuestions);
       const aptQuestionsNeeded = questionsPerPage - questionsForThisPage.length;
       questionsForThisPage.push(
@@ -256,7 +254,7 @@ const getQuestion = async (req, res) => {
       );
     }
 
-    // Format questions for response
+    // format questions for response which is retrived
     const formattedQuestions = questionsForThisPage.map((q) => ({
       id: q._id,
       question: q.question,

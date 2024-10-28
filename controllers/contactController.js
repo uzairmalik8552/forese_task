@@ -6,26 +6,25 @@ const search = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const searchQuery = req.query.search || "";
     const skip = (page - 1) * limit;
-
-    // Clean and prepare the search query
+    // it trim all the withspace before and after the key
     const cleanSearchQuery = searchQuery.trim();
-
-    // Remove all spaces and escape special
+    // it will remove space between the words
     const noSpaceQuery = cleanSearchQuery.replace(/\s+/g, "");
-
-    const regexPattern = noSpaceQuery
+    // it will creat a json that will contain each letter as array of single letter with\\s*
+    // this will help us to do partial searching and full text searching
+    const finalKey = noSpaceQuery
       .split("")
       .map((char) => `${char}\\s*`)
       .join("");
 
     const query = {
       $or: [
-        { hrName: { $regex: regexPattern, $options: "i" } },
+        { hrName: { $regex: finalKey, $options: "i" } },
         { hrNumber: { $regex: cleanSearchQuery, $options: "i" } },
       ],
     };
 
-    // Execute query with pagination
+    // execute query with pagination
     const hrs = await Contact.find(query)
       .sort({ hrName: 1 })
       .skip(skip)
@@ -62,7 +61,7 @@ const contacts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     const skip = (page - 1) * limit;
 
-    // Get contacts with pagination
+    // get contacts with pagination
     const contacts = await Contact.find({}, null, {
       skip: skip,
       limit: limit,

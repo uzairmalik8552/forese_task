@@ -15,13 +15,6 @@ const partialSearch = async (req, res) => {
     // Create case-insensitive regex
     const searchRegex = new RegExp(searchQuery, "i");
 
-    // Create compound index for these fields if not already created
-    // await UserSearch.collection.createIndex({
-    //   firstName: 1,
-    //   lastName: 1,
-    //   email: 1
-    // });
-
     // Optimized query using $or with simple regex
     const query = {
       $or: [
@@ -41,15 +34,13 @@ const partialSearch = async (req, res) => {
       .lean();
     console.log("2");
     console.log(results);
-    // Get total count
-    // const total = await UserSearch.countDocuments(query);
-    const total = await UserSearch.aggregate([
-      { $match: query },
-      { $count: "total" },
-    ]);
-    const totalCount = total[0] ? total[0].total : 0;
+    // get total count
+    // this is taking time to get the response ads it is taking 1m if we inclusde this query
+    // i am using this query to mainly get the idea for pagonation
+    // we can also skip this query then the rendoring time will be fast and for agination we can hadel it in frontend using tanstack query
+    const total = await UserSearch.countDocuments(query);
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(total / limit);
     console.log("3");
     res.status(200).json({
       success: true,
@@ -58,7 +49,7 @@ const partialSearch = async (req, res) => {
         pagination: {
           currentPage: page,
           totalPages,
-          totalResults: totalCount,
+          totalResults: total,
           resultsPerPage: limit,
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
